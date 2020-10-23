@@ -60,28 +60,28 @@ function piecewiselinear(m::JuMP.Model, x::VarOrAff, pwl::UnivariatePWLFunction;
     elseif method == :MC
         x̂ = JuMP.@variable(m, [1:n-1],      base_name="x̂_$counter")
         ẑ = JuMP.@variable(m, [1:n-1],      base_name="ẑ_$counter")
-        y = JuMP.@variable(m, [1:n-1], Bin, base_name="y_$counter")
+        w = JuMP.@variable(m, [1:n-1], Bin, base_name="w_$counter")
         JuMP.@constraint(m, sum(y) == 1)
         JuMP.@constraint(m, sum(x̂) == x)
         JuMP.@constraint(m, sum(ẑ) == z)
         Δ = [(fd[i+1]-fd[i])/(d[i+1]-d[i]) for i in 1:n-1]
         for i in 1:n-1
             JuMP.@constraints(m, begin
-                x̂[i] ≥ d[i]  *y[i]
-                x̂[i] ≤ d[i+1]*y[i]
-                ẑ[i] == fd[i]*y[i] + Δ[i]*(x̂[i]-d[i]*y[i])
+                x̂[i] ≥ d[i]  *w[i]
+                x̂[i] ≤ d[i+1]*w[i]
+                ẑ[i] == fd[i]*w[i] + Δ[i]*(x̂[i]-d[i]*w[i])
             end)
         end
     elseif method in (:DisaggLogarithmic,:DLog)
-        γ = JuMP.@variable(m, [i=1:n,j=max(1,i-1):min(n-1,i)], lower_bound=0, upper_bound=1)
-        JuMP.@constraint(m, sum(γ) == 1)
-        JuMP.@constraint(m, γ[1,1]* d[1] + sum((γ[i,i-1]+γ[i,i])* d[i] for i in 2:n-1) + γ[n,n-1]* d[n] == x)
-        JuMP.@constraint(m, γ[1,1]*fd[1] + sum((γ[i,i-1]+γ[i,i])*fd[i] for i in 2:n-1) + γ[n,n-1]*fd[n] == z)
+        w = JuMP.@variable(m, [i=1:n,j=max(1,i-1):min(n-1,i)], lower_bound=0, upper_bound=1, base_name="w_$counter")
+        JuMP.@constraint(m, sum(w) == 1)
+        JuMP.@constraint(m, w[1,1]* d[1] + sum((w[i,i-1]+w[i,i])* d[i] for i in 2:n-1) + w[n,n-1]* d[n] == x)
+        JuMP.@constraint(m, w[1,1]*fd[1] + sum((w[i,i-1]+w[i,i])*fd[i] for i in 2:n-1) + w[n,n-1]*fd[n] == z)
         r = ceil(Int, log2(n-1))
         H = reflected_gray_codes(r)
         y = JuMP.@variable(m, [1:r], Bin)
         for j in 1:r
-            JuMP.@constraint(m, sum((γ[i,i]+γ[i+1,i])*H[i][j] for i in 1:(n-1)) == y[j])
+            JuMP.@constraint(m, sum((w[i,i]+w[i+1,i])*H[i][j] for i in 1:(n-1)) == y[j])
         end
     else
         # V-formulation methods
