@@ -25,7 +25,6 @@ piecewiselinear(m::JuMP.Model, x::VarOrAff, d, fd; method=defaultmethod()) =
     piecewiselinear(m, x, UnivariatePWLFunction(d, fd); method=method)
 
 function piecewiselinear(m::JuMP.Model, x::VarOrAff, pwl::UnivariatePWLFunction; method=defaultmethod())
-    println("bla")
     initPWL!(m)
     counter = m.ext[:PWL].counter
     counter += 1
@@ -80,7 +79,7 @@ function piecewiselinear(m::JuMP.Model, x::VarOrAff, pwl::UnivariatePWLFunction;
         JuMP.@constraint(m, w[1,1]*fd[1] + sum((w[i,i-1]+w[i,i])*fd[i] for i in 2:n-1) + w[n,n-1]*fd[n] == z)
         r = ceil(Int, log2(n-1))
         H = reflected_gray_codes(r)
-        y = JuMP.@variable(m, [1:r], Bin)
+        y = JuMP.@variable(m, [1:r], Bin, base_name="y_$counter")
         for j in 1:r
             JuMP.@constraint(m, sum((w[i,i]+w[i+1,i])*H[i][j] for i in 1:(n-1)) == y[j])
         end
@@ -519,7 +518,6 @@ piecewiselinear(m::JuMP.Model, x::VarOrAff, y::VarOrAff, dˣ, dʸ, f::Function; 
     piecewiselinear(m, x, y, BivariatePWLFunction(dˣ, dʸ, f); method=method)
 
 function piecewiselinear(m::JuMP.Model, x₁::VarOrAff, x₂::VarOrAff, pwl::BivariatePWLFunction; method=defaultmethod(), subsolver=nothing)
-    println("blubb")
     if (method == :OptimalIB) && (subsolver === nothing)
         error("No MIP solver provided to construct optimal IB scheme. Pass a solver object to the piecewiselinear function, e.g. piecewiselinear(m, x₁, x₂, bivariatefunc, method=:OptimalIB, subsolver=GurobiSolver())")
     end
